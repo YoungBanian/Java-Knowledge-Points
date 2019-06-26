@@ -112,59 +112,70 @@
       1. Java对象头
           - 对象在内存中的布局
             - 对象头:
-
-              虚拟机位数 | 头对象结构 |  说明  
-              -         |-          |   -
-              32/64bit  | Mark Word |默认存储对象的hashCode，分代年龄，锁类型，锁标志位等信息  |
-              32/64bit  | Class Metadata Address | 类型指针指向对象的类元数据，JVM通过这个指针确定该对象是哪个类的数据 |
-              - Mark Word
-
-                <table>
-                  <tr>
-                      <td rowspan="2">锁状态</td>
-                      <td colspan="2" align="center">25bit</td>
-                      <td rowspan="2">4bit</td>
-                      <td align="center">1bit</td>
-                      <td align="center">2bit</td>
-                  </tr>
-                  <tr>
-                      <td>23bit</td>
-                      <td>2bit</td>
-                      <td>是否是偏向锁</td>
-                      <td>锁标志位</td>
-                  </tr>
-                  <tr>
-                      <td>无锁状态</td>
-                      <td colspan="4" align="center">对象hashcode、对象分代年龄</td>
-                      <td align="center">01</td>
-                  </tr>
-                  <tr>
-                      <td>轻量级锁</td>
-                      <td colspan="4" align="center">指向锁记录的指针</td>
-                      <td align="center">00</td>
-                  </tr>
-                  <tr>
-                      <td>重量级锁</td>
-                      <td colspan="4" align="center">指向重量级锁的指针</td>
-                      <td align="center">10</td>
-                  </tr>
-                  <tr>
-                      <td>GC标记</td>
-                      <td colspan="4" align="center">空，不需要记录信息</td>
-                      <td align="center">11</td>
-                  </tr>
-                  <tr>
-                      <td>偏向锁</td>
-                      <td align="center">线程ID</td>
-                      <td align="center">Epoch</td>
-                      <td align="center">对象分代年龄</td>
-                      <td align="center">1</td>
-                      <td align="center">01</td>
-                  </tr>
-                  </table>
+              <table>
+                <tr>
+                  <td>虚拟机位数</td>
+                  <td>头对象结构</td>
+                  <td>说明</td>
+                </tr>
+                <tr>
+                  <td>32/64bit</td>
+                  <td>Mark Word</td>
+                  <td>默认存储对象的hashCode，分代年龄，锁类型，锁标志位等信息</td>
+                </tr>
+                <tr>
+                  <td>32/64bit</td>
+                  <td>Class Metadata Address</td>
+                  <td>类型指针指向对象的类元数据，JVM通过这个指针确定该对象是哪个类的数据</td>
+                </tr>
+              </table>
+            - Mark Word
+              <table>
+                <tr>
+                  <td rowspan="2">锁状态</td>
+                  <td colspan="2" align="center">25bit</td>
+                  <td rowspan="2">4bit</td>
+                  <td align="center">1bit</td>
+                  <td align="center">2bit</td>
+                </tr>
+                <tr>
+                  <td>23bit</td>
+                  <td>2bit</td>
+                  <td>是否是偏向锁</td>
+                  <td>锁标志位</td>
+                </tr>
+                <tr>
+                  <td>无锁状态</td>
+                  <td colspan="4" align="center">对象hashcode、对象分代年龄</td>
+                  <td align="center">01</td>
+                </tr>
+                <tr>
+                  <td>轻量级锁</td>
+                  <td colspan="4" align="center">指向锁记录的指针</td>
+                  <td align="center">00</td>
+                </tr>
+                <tr>
+                  <td>重量级锁</td>
+                  <td colspan="4" align="center">指向重量级锁的指针</td>
+                  <td align="center">10</td>
+                </tr>
+                <tr>
+                  <td>GC标记</td>
+                  <td colspan="4" align="center">空，不需要记录信息</td>
+                  <td align="center">11</td>
+                </tr>
+                <tr>
+                  <td>偏向锁</td>
+                  <td align="center">线程ID</td>
+                  <td align="center">Epoch</td>
+                  <td align="center">对象分代年龄</td>
+                  <td align="center">1</td>
+                  <td align="center">01</td>
+                </tr>
+              </table>
       2. Monitor: 每个Java对象天生自带了一把看不见的锁
-        - Monitor锁的竞争、获取与释放
-          - ![Monitor竞争锁](https://github.com/YoungBanian/Resources/blob/master/monitor.png?raw=true)
+          - Monitor锁的竞争、获取与释放
+            - ![Monitor竞争锁](https://github.com/YoungBanian/Resources/blob/master/monitor.png?raw=true)
       3. 什么是重入
           - 从互斥锁的设计上来说，当一个线程试图操作一个由其他线程持有的对象锁的临界资源时，将会处于阻塞状态，但当一个线程再次请求自己持有对象锁的临界资源时，这种情况属于重入(例如synchronized代码块里再次调用synchronized代码块)
       4. 自旋锁
@@ -177,3 +188,55 @@
       6. 锁消除(例如StringBuilder)
         - 更彻底的优化
           - JIT编译时，对运行上下文进行扫描，去除不可能存在竞争的锁
+      7. synchronized的四种状态
+          - 锁的内存语义
+            - 当线程释放锁时,Java内存模型会把该线程对应的本地内存中的共享变量刷新到主内存中
+            - 而当线程获取锁时，Java内存模型会把该线程对应的本地内存置为无效，从而使得被监视器保护的临界区代码必须从主内存中读取共享变量
+            - ![锁获取与释放执行过程](https://github.com/YoungBanian/Resources/blob/master/lock.png?raw=true)
+          - 无锁、偏向锁、轻量级锁、重量级锁
+          - 锁膨胀方向：无锁 -> 偏向锁 -> 轻量级锁 -> 重量级锁
+            - 偏向锁： 减少同一线程获取锁的代价(CAS[Compare And Swap])
+              - 大多数情况下，锁不存在多线程竞争，总是由同一线程多次获得
+              - 核心思想：
+                - 如果一个线程获得了锁，那么锁就进入偏向模式，此时Mark Word的结构也变为偏向锁结构，当该线程再次请求锁时，无需再做任何同步操作，即获取锁的过程只需要检查Mark Word的锁标记位为偏向锁以及当前线程Id等于Mark Word的ThreadID即可，这样就省去了大量有关锁申请的操作。
+                - 不适用于锁竞争比较激烈的多线程场合
+            - 轻量级锁
+              - 轻量级锁是由偏向锁升级来的，偏向锁运行一个线程进入同步块的情况下，当第二个线程加入锁争用的时候，偏向锁就会升级为轻量级锁。
+              - 适应的场景：线程交替执行同步块
+              - 若存在同一时间访问同一锁的情况，就会导致轻量级锁膨胀为重量级锁
+          - 偏向锁、轻量级锁、重量级锁的汇总
+            <table>
+              <tr>
+                <td>锁</td>
+                <td>优点</td>
+                <td>缺点</td>
+                <td>使用场景</td>
+              </tr>
+              <tr>
+                <td>偏向锁</td>
+                <td>加锁和解锁不需要CAS操作，没有额外的性能消耗，和执行非同步方法相比仅存在纳秒的差距</td>
+                <td>如果线程存在锁竞争，会带来额外的锁撤销的消耗</td>
+                <td>只有一个线程访问同步块或者同步方法的场景</td>
+              </tr>
+              <tr>
+                <td>轻量级锁</td>
+                <td>竞争的线程不会阻塞，提高了响应速度</td>
+                <td>若线程长时间抢不到锁，自旋会消耗CPU性能</td>
+                <td>线程交替执行同步块或者同步方法的场景</td>
+              </tr>
+              <tr>
+                <td>重量级锁</td>
+                <td>线程竞争不使用自旋，不会消耗CPU</td>
+                <td>线程阻塞，响应时间缓慢，在多线程下，频繁的获取释放锁，会带来巨大的性能消耗</td>
+                <td>追求吞吐量，同步块或者同步方法执行时间较长的场景</td>
+              </tr>
+            </table>
+
+## 12. synchronized和ReentrantLock的区别
+  - ### ReentrantLock(再入锁)
+      - 位于java.util.concurrent.locks包
+      - 和CountDownLatch、FutureTask、Semaphore一样基于AQS实现
+
+
+
+
