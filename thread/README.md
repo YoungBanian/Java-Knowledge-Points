@@ -234,9 +234,74 @@
 
 ## 12. synchronized和ReentrantLock的区别
   - ### ReentrantLock(再入锁)
-      - 位于java.util.concurrent.locks包
-      - 和CountDownLatch、FutureTask、Semaphore一样基于AQS实现
+    - 位于java.util.concurrent.locks包
+    - 和CountDownLatch、FutureTask、Semaphore一样基于AQS实现
+    - 能够实现比synchronized更细粒度的控制，如控制fairness
+    - 调用lock()之后，必须调用unlock()释放锁
+    - 性能未必比synchronized高，并且也是可重入的
+    - ReentrantLock公平性的设置
+      - ReentrantLock fairLock = new ReentrantLock(true);
+      - 参数为true时，倾向于将锁富裕等待时间最久的线程
+      - 公平锁: 获取锁的顺序按先后调用lock方法的顺序(慎用)
+      - 非公平锁: 抢占的顺序不一定，看运气
+      - synchronized是非公平锁
+    - ReentrantLock将锁对象化
+      - 判断是否有线程，或者某个特定线程，在排队等待获取锁
+      - 带超时的获取锁的尝试
+      - 感知有没有成功获取锁
+    - 总结:
+      - synchonized是关键字，ReentrantLock是类
+      - ReentrantLock可以怼获取锁的等待时间进行设置，避免死锁
+      - ReentrantLock可以获取各种锁的信息
+      - ReentrantLock可以灵活地实现多路通知
+      - 机制: sync操作Mark Word, lock调用Unsafe类的park()方法
 
-
-
-
+## 13. Java内存模型JMM
+  - Java内存模型(即Java Memory Model, 简称JMM)本身是一种抽象的概念，并不真实存在，它描述的是一组规则或规范，通过这组规范定义了程序中各个变量(包括实例字段，静态字段和构成数组的对象元素)的访问方式
+    - ![JMM](https://github.com/YoungBanian/Resources/blob/master/jmm.png?raw=true)
+  - JMM中的主内存和工作内存
+    - JMM中的主内存
+      - 存储Java实例对象
+      - 包括成员变量、类信息、常量、静态变量等
+      - 属于数据共享的区域，多线程并发操作时会引发线程安全问题
+    - JMM中的工作内存
+      - 存储当前方法的所有本地变量信息，本地变量对其他线程不可见
+      - 字节码行号指示器、Native方法信息
+      - 属于线程私有数据区域，不存在线程安全问题
+    - JMM与Java内存区域划分是不同的概念层次
+      - JMM描述的是一组规则，围绕原子性，有序性、可见性展开
+      - 相似点：存在共享区域和私有区域
+    - 主内存与工作内存的数据存储类型以及操作方式归纳
+      - 方法里的基本数据类型本地变量将直接存储在工作内存的栈帧结构中
+      - 引用类型的本地变量：引用存储在工作内存中，实例存储在主内存中
+      - 成员变量、static变量、类信息均会被存储在主内存中
+      - 主内存共享的方式是线程各拷贝一份数据到工作内存，操作完成后刷新回主内存
+    - JMM解决可见性问题
+      - JMM在多线程出现数据不一致性是由于读取数据阶段,如图:
+        - ![JMM可见性分析](https://github.com/YoungBanian/Resources/blob/master/jmm_see.png?raw=true)
+      - 指令重排序需要满足的条件:
+        - 在单线程环境下不能改变程序运行的结果
+        - 存在数据依赖关系的不允许重排序
+        - 以上两个归结于：无法通过happens-before原则推导出来的，才能进行指令的重排序
+          - happens-before的八大原则
+            1. 程序次序规则: 一个线程内，按照代码顺序，书写在前面的操作先行于书写在后面的操作
+            2. 锁定规则: 一个unLock操作先行发生于后面对同一个锁的lock操作
+            3. volatile变量规则: 对一个变量的写操作先行发生于后面对这个变量的读操作
+            4. 传递原则: 如果操作A先行发生于操作B，而操作B又先行发生于操作C，则可以得出操作A先行发生于操作C
+            5. 线程中断规则: Thread对象的start()方法先行发生于此线程的每一个动作
+            6. 线程中断规则: 对线程interrupt()方法的调用先行发生于被中断线程的代码检测到中断事件的发生
+            7. 线程终结规则: 线程中所有的操作都先行发生于线程的终止检测，我们可以通过Thread.join()方法结束、Thread.isAlive()的返回值手段检测到线程已经终止执行
+            8. 对象终结规则: 一个对象的初始化完成先行发生于他的finalize()方法的开始
+      - volatitle的可见性(当写一个volatitle变量时，JMM会把该线程对应的工作内存中的共享变量值刷新到主内存中;当读取一个volatititle变量时，JMM会把该线程对应的工作内存置为无效)
+        - 保证被volatitle修饰的共享变量对所有线程总是可见的
+        - 禁止指令重排序优化
+      - volatitle如何禁止重排优化
+        - 内存屏障(Memory Barrier)(通过插入内存屏障指令禁止在内存屏障前后的指令执行重排序优化,强制刷出各种CPU的缓存数据，因此任何CPU上的线程都能读取到这些数据的最新版本)
+            - 保证特定操作的执行顺序
+            - 保证某些变量的内存可见性
+      - volatitle和synchronized的区别
+        1. volatitle本质是在告诉JVM当前变量在寄存器（工作内存）中的值是不确定的，需要从主存中读取；synchronized则是锁定当前变量，只有当前线程可以访问该变量，其他线程被阻塞住直到该线程完成变量操作为止
+        2. volatitle仅能使用在变量级别；synchronized则可以使用在变量、方法和类级别
+        3. volatitle仅能实现变量的修改可见性，不能保证原子性；而synchronized则可以保证变量修改的可见性和原子性
+        4. volatitle不会造成线程的阻塞；synchronized可能会造成线程阻塞
+        5. volatitle标记的变量不会被编译器优化；synchronized标记的变量可以被编译器优化
